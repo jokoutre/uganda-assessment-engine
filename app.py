@@ -7,10 +7,44 @@ import io
 import os
 import re
 
-# 1. Web Framework Interface Setting
-st.set_page_config(page_title="Uganda CBC Worksheet Engine", layout="wide")
+# 1. Web Framework Interface Setting & Title Update
+st.set_page_config(page_title="Teacher Granny's CBC Engine", layout="wide", page_icon="👵")
 
-st.title("🇺🇬 NCDC Competency-Based Assessment Engine (V2.1)")
+# --- NEW: Educational SVG Styling Banner ---
+custom_svg_banner = """
+<div style="display: flex; justify-content: center; margin-bottom: 20px;">
+    <svg width="100%" height="120" viewBox="0 0 800 120" xmlns="http://www.w3.org/2000/svg" style="border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <rect width="100%" height="100%" fill="#F7FFF7" rx="15"/>
+        
+        <circle cx="80" cy="60" r="35" fill="#FF9F1C" opacity="0.2"/>
+        <polygon points="700,30 730,90 670,90" fill="#2EC4B6" opacity="0.2"/>
+        <rect x="150" y="20" width="20" height="20" fill="#E71D36" opacity="0.2" transform="rotate(15 160 30)"/>
+        <circle cx="620" cy="40" r="15" fill="#011627" opacity="0.1"/>
+
+        <g transform="translate(680, 50) rotate(45)">
+            <rect x="0" y="0" width="60" height="16" fill="#FF9F1C" rx="2"/>
+            <polygon points="60,0 75,8 60,16" fill="#FFD166"/>
+            <polygon points="70,6 75,8 70,10" fill="#011627"/>
+            <rect x="-10" y="0" width="10" height="16" fill="#E71D36" rx="2"/>
+        </g>
+        
+        <g transform="translate(50, 40)">
+            <rect x="0" y="0" width="25" height="25" fill="#2EC4B6" rx="3"/>
+            <text x="12.5" y="18" font-family="sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">A</text>
+            <rect x="30" y="10" width="25" height="25" fill="#E71D36" rx="3"/>
+            <text x="42.5" y="28" font-family="sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">B</text>
+            <rect x="15" y="30" width="25" height="25" fill="#FF9F1C" rx="3"/>
+            <text x="27.5" y="48" font-family="sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">C</text>
+        </g>
+
+        <text x="400" y="55" font-family="'Comic Sans MS', 'Chalkboard SE', sans-serif" font-size="28" font-weight="bold" fill="#011627" text-anchor="middle">Teacher Granny's Workspace</text>
+        <text x="400" y="85" font-family="sans-serif" font-size="14" font-weight="normal" fill="#2EC4B6" text-anchor="middle">Inspiring Young Minds • Building Bright Futures</text>
+    </svg>
+</div>
+"""
+st.markdown(custom_svg_banner, unsafe_allow_html=True)
+
+st.title("👵 Teacher Granny's Ug NCDC Competency-Based Assessment Engine (V2.1)")
 st.write("Constructing high-end PDFs, editable Word docs, and Assessment Reports with Pattern Intelligence.")
 st.divider()
 
@@ -71,7 +105,8 @@ def create_blueprint_pdf(class_name, subj_name, term_name, topic_name, assign_ty
     
     pdf.set_font("Helvetica", "B", 14)
     pdf.set_x(25.4)
-    pdf.cell(159.2, 10, "UGANDA PRIMARY SCHOOL ASSESSMENT ENGINE", ln=True, align="C")
+    # Using the new branding in the printed documents too!
+    pdf.cell(159.2, 10, "TEACHER GRANNY'S ASSESSMENT ENGINE", ln=True, align="C")
     
     pdf.set_font("Helvetica", "B", 12)
     pdf.set_x(25.4)
@@ -212,7 +247,7 @@ def create_blueprint_pdf(class_name, subj_name, term_name, topic_name, assign_ty
 def create_word_doc(class_name, subj_name, term_name, topic_name, assign_type, raw_ai_text):
     doc = Document()
     
-    doc.add_heading('UGANDA PRIMARY SCHOOL ASSESSMENT ENGINE', 0)
+    doc.add_heading("TEACHER GRANNY'S ASSESSMENT ENGINE", 0)
     doc.add_heading(f'{assign_type.upper()} EVALUATION: {topic_name.upper()}', 1)
     
     p = doc.add_paragraph()
@@ -249,7 +284,7 @@ if st.sidebar.button("Generate Master Assessment Documents ✨"):
     elif not specific_topic:
         st.sidebar.error("Please explicitly declare a curriculum lesson topic.")
     else:
-        with st.spinner(f"Compiling V2.1 {ability_level} materials, mapping competencies, & generating report..."):
+        with st.spinner(f"Teacher Granny is compiling V2.1 {ability_level} materials & mapping competencies..."):
             try:
                 client = genai.Client(api_key=api_key)
                 ai_contents = []
@@ -407,7 +442,7 @@ if st.sidebar.button("Generate Master Assessment Documents ✨"):
                     tab1, tab2, tab3 = st.tabs(["📄 Export Assessment File", "🔑 Teacher Matrix Key", "📊 Assessment Report"])
                     
                     with tab1:
-                        st.success(f"Your CBC {ability_level} assessment is audited, compiled, and ready!")
+                        st.success(f"Teacher Granny's {ability_level} assessment is audited, compiled, and ready!")
                         
                         col1, col2 = st.columns(2)
                         with col1:
