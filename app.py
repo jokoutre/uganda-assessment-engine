@@ -10,7 +10,7 @@ import re
 # 1. Web Framework Interface Setting & Title Update
 st.set_page_config(page_title="Teacher Granny's CBC Engine", layout="wide", page_icon="👵")
 
-# --- NEW: Educational SVG Styling Banner ---
+# --- Educational SVG Styling Banner ---
 custom_svg_banner = """
 <div style="display: flex; justify-content: center; margin-bottom: 20px;">
     <svg width="100%" height="120" viewBox="0 0 800 120" xmlns="http://www.w3.org/2000/svg" style="border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
@@ -105,7 +105,6 @@ def create_blueprint_pdf(class_name, subj_name, term_name, topic_name, assign_ty
     
     pdf.set_font("Helvetica", "B", 14)
     pdf.set_x(25.4)
-    # Using the new branding in the printed documents too!
     pdf.cell(159.2, 10, "TEACHER GRANNY'S ASSESSMENT ENGINE", ln=True, align="C")
     
     pdf.set_font("Helvetica", "B", 12)
