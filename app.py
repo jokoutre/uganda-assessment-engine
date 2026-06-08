@@ -6,6 +6,7 @@ from docx import Document
 import io
 import os
 import re
+import tempfile 
 
 # 1. Web Framework Interface Setting & Title Update
 st.set_page_config(page_title="Teacher Granny's CBC Engine", layout="wide", page_icon="👵")
@@ -15,19 +16,16 @@ custom_svg_banner = """
 <div style="display: flex; justify-content: center; margin-bottom: 20px;">
     <svg width="100%" height="120" viewBox="0 0 800 120" xmlns="http://www.w3.org/2000/svg" style="border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
         <rect width="100%" height="100%" fill="#F7FFF7" rx="15"/>
-        
         <circle cx="80" cy="60" r="35" fill="#FF9F1C" opacity="0.2"/>
         <polygon points="700,30 730,90 670,90" fill="#2EC4B6" opacity="0.2"/>
         <rect x="150" y="20" width="20" height="20" fill="#E71D36" opacity="0.2" transform="rotate(15 160 30)"/>
         <circle cx="620" cy="40" r="15" fill="#011627" opacity="0.1"/>
-
         <g transform="translate(680, 50) rotate(45)">
             <rect x="0" y="0" width="60" height="16" fill="#FF9F1C" rx="2"/>
             <polygon points="60,0 75,8 60,16" fill="#FFD166"/>
             <polygon points="70,6 75,8 70,10" fill="#011627"/>
             <rect x="-10" y="0" width="10" height="16" fill="#E71D36" rx="2"/>
         </g>
-        
         <g transform="translate(50, 40)">
             <rect x="0" y="0" width="25" height="25" fill="#2EC4B6" rx="3"/>
             <text x="12.5" y="18" font-family="sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">A</text>
@@ -36,7 +34,6 @@ custom_svg_banner = """
             <rect x="15" y="30" width="25" height="25" fill="#FF9F1C" rx="3"/>
             <text x="27.5" y="48" font-family="sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">C</text>
         </g>
-
         <text x="400" y="55" font-family="'Comic Sans MS', 'Chalkboard SE', sans-serif" font-size="28" font-weight="bold" fill="#011627" text-anchor="middle">Teacher Granny's Workspace</text>
         <text x="400" y="85" font-family="sans-serif" font-size="14" font-weight="normal" fill="#2EC4B6" text-anchor="middle">Inspiring Young Minds • Building Bright Futures</text>
     </svg>
@@ -48,35 +45,50 @@ st.title("👵 Teacher Granny's Ug NCDC Competency-Based Assessment Engine (V2.1
 st.write("Constructing high-end PDFs, editable Word docs, and Assessment Reports with Pattern Intelligence.")
 st.divider()
 
-# 2. Control Sidebar Deck
+# --- INITIALIZE SESSION STATE (The Memory Bank) ---
+if 'documents_ready' not in st.session_state:
+    st.session_state.documents_ready = False
+if 'pdf_binary' not in st.session_state:
+    st.session_state.pdf_binary = None
+if 'word_binary' not in st.session_state:
+    st.session_state.word_binary = None
+if 'student_text' not in st.session_state:
+    st.session_state.student_text = ""
+if 'teacher_text' not in st.session_state:
+    st.session_state.teacher_text = ""
+if 'report_text' not in st.session_state:
+    st.session_state.report_text = ""
+
+# 2. Control Sidebar Deck (Wrapped in a Form)
 st.sidebar.header("Worksheet Controls")
-api_key = st.sidebar.text_input("Enter Gemini API Key:", type="password")
 
-class_level = st.sidebar.selectbox("Target Class:", ["Primary 5", "Primary 6", "Primary 7"])
-subject = st.sidebar.selectbox("Core Subject:", [
-    "Mathematics", "Integrated Science", "Social Studies (SST)", 
-    "English Language", "Kiswahili", "Religious Education (RE)"
-])
-term = st.sidebar.selectbox("Academic Term:", ["Term I", "Term II", "Term III"])
-specific_topic = st.sidebar.text_input("Curriculum Topic:", placeholder="e.g., Punctuation, Geometry, Malaria Prevention")
-
-ability_level = st.sidebar.selectbox("Learner Ability Level:", [
-    "Average Ability (Standard CBC)",
-    "Lower Ability (Foundational/Guided)",
-    "High Ability (Challenging/Analytical)"
-])
-
-assignment_type = st.sidebar.radio("Assignment Type:", ["Classwork", "Homework"])
-question_count = st.sidebar.slider("Number of Questions:", min_value=1, max_value=15, value=5)
-
-st.sidebar.subheader("Curriculum Reference")
-uploaded_file = st.sidebar.file_uploader("Upload NCDC Reference PDF:", type=["pdf"])
+with st.sidebar.form(key="assessment_form"):
+    api_key = st.text_input("Enter Gemini API Key:", type="password")
+    class_level = st.selectbox("Target Class:", ["Primary 5", "Primary 6", "Primary 7"])
+    subject = st.selectbox("Core Subject:", [
+        "Mathematics", "Integrated Science", "Social Studies (SST)", 
+        "English Language", "Kiswahili", "Religious Education (RE)"
+    ])
+    term = st.selectbox("Academic Term:", ["Term I", "Term II", "Term III"])
+    specific_topic = st.text_input("Curriculum Topic:", placeholder="e.g., Punctuation, Geometry, Malaria Prevention")
+    ability_level = st.selectbox("Learner Ability Level:", [
+        "Average Ability (Standard CBC)",
+        "Lower Ability (Foundational/Guided)",
+        "High Ability (Challenging/Analytical)"
+    ])
+    assignment_type = st.radio("Assignment Type:", ["Classwork", "Homework"])
+    question_count = st.slider("Number of Questions:", min_value=1, max_value=15, value=5)
+    
+    st.subheader("Curriculum Reference")
+    uploaded_file = st.file_uploader("Upload NCDC Reference PDF:", type=["pdf"])
+    
+    submit_button = st.form_submit_button(label="Generate Master Assessment Documents ✨")
 
 # --- ADVANCED DESIGN BLUEPRINT MATRIX PUBLISHER (PDF) ---
 def create_blueprint_pdf(class_name, subj_name, term_name, topic_name, assign_type, raw_ai_text):
     replacements = {
         '\u2013': '-', '\u2014': '-', '\u2018': "'", '\u2019': "'",
-        '\u201c': '"', '\u201d': '"', '\u2026': '...', '**': '' 
+        '\u201c': '"', '\u201d': '"', '\u2026': '...', '**': '', '⭐': '*', '✨': '*'
     }
     for bad_char, good_char in replacements.items():
         raw_ai_text = raw_ai_text.replace(bad_char, good_char)
@@ -176,7 +188,8 @@ def create_blueprint_pdf(class_name, subj_name, term_name, topic_name, assign_ty
             line_text = clean_line.replace("[SPACE_RESERVED]", "")
             if line_text:
                 pdf.set_font("Helvetica", "", 12)
-                safe_text = line_text.encode('latin-1', 'replace').decode('latin-1')
+                # Ignore unknown characters to prevent PDF crashing
+                safe_text = line_text.encode('latin-1', 'ignore').decode('latin-1')
                 pdf.set_x(25.4)
                 pdf.multi_cell(159.2, 6, safe_text)
                 
@@ -207,7 +220,7 @@ def create_blueprint_pdf(class_name, subj_name, term_name, topic_name, assign_ty
             pdf.set_draw_color(*text_color_rgb)
             
         else:
-            safe_clean_line = clean_line.encode('latin-1', 'replace').decode('latin-1')
+            safe_clean_line = clean_line.encode('latin-1', 'ignore').decode('latin-1')
             pdf.set_x(25.4)
             if in_scenario:
                 pdf.set_font("Helvetica", "I", 11)
@@ -240,7 +253,19 @@ def create_blueprint_pdf(class_name, subj_name, term_name, topic_name, assign_ty
         box_bottom = pdf.get_y()
         pdf.rect(25.4, box_top, 159.2, box_bottom - box_top)
         
-    return pdf.output()
+    # --- FOOLPROOF PDF EXPORT ---
+    # We write it to a physical temporary file first to prevent corruption
+    tmp_path = ""
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+        tmp_path = tmp.name
+        
+    pdf.output(tmp_path) 
+    
+    with open(tmp_path, "rb") as f:
+        pdf_bytes = f.read() 
+        
+    os.remove(tmp_path) 
+    return pdf_bytes
 
 # --- MS WORD DOCUMENT ENGINE ---
 def create_word_doc(class_name, subj_name, term_name, topic_name, assign_type, raw_ai_text):
@@ -277,7 +302,7 @@ def create_word_doc(class_name, subj_name, term_name, topic_name, assign_type, r
     return bio.getvalue()
 
 # 4. Main Infrastructure Automation Tower
-if st.sidebar.button("Generate Master Assessment Documents ✨"):
+if submit_button:
     if not api_key:
         st.sidebar.error("Please supply a valid Google AI Studio API Key.")
     elif not specific_topic:
@@ -287,11 +312,14 @@ if st.sidebar.button("Generate Master Assessment Documents ✨"):
             try:
                 client = genai.Client(api_key=api_key)
                 ai_contents = []
+                uploaded_doc = None
                 
                 if uploaded_file is not None:
-                    with open("temp_manifest.pdf", "wb") as f:
-                        f.write(uploaded_file.getbuffer())
-                    uploaded_doc = client.files.upload(file="temp_manifest.pdf")
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+                        tmp_file.write(uploaded_file.getbuffer())
+                        tmp_file_path = tmp_file.name
+                        
+                    uploaded_doc = client.files.upload(file=tmp_file_path)
                     ai_contents.append(uploaded_doc)
                 
                 # --- V2 DYNAMIC BLUEPRINT INJECTION WITH PATTERN INTELLIGENCE ---
@@ -421,73 +449,100 @@ if st.sidebar.button("Generate Master Assessment Documents ✨"):
                     st.error(f"🚨 Logic Conflict Detected: {error_message}")
                     
                 else:
-                    student_text = raw_output
-                    teacher_text = "Answer Key missing or formatting error."
-                    report_text = "Teacher Assessment Report missing or formatting error."
+                    student_text_output = raw_output
+                    teacher_text_output = "Answer Key missing or formatting error."
+                    report_text_output = "Teacher Assessment Report missing or formatting error."
                     
-                    if "===ANSWER_KEY_SPLIT===" in student_text:
-                        parts = student_text.split("===ANSWER_KEY_SPLIT===", 1)
-                        student_text = parts[0]
+                    if re.search(r'\s*===ANSWER_KEY_SPLIT===\s*', student_text_output):
+                        parts = re.split(r'\s*===ANSWER_KEY_SPLIT===\s*', student_text_output, maxsplit=1)
+                        student_text_output = parts[0]
                         remainder = parts[1]
                         
-                        if "===TEACHER_REPORT_SPLIT===" in remainder:
-                            teacher_text, report_text = remainder.split("===TEACHER_REPORT_SPLIT===", 1)
+                        if re.search(r'\s*===TEACHER_REPORT_SPLIT===\s*', remainder):
+                            teacher_parts = re.split(r'\s*===TEACHER_REPORT_SPLIT===\s*', remainder, maxsplit=1)
+                            teacher_text_output = teacher_parts[0]
+                            report_text_output = teacher_parts[1]
                         else:
-                            teacher_text = remainder
+                            teacher_text_output = remainder
                     
-                    pdf_binary = create_blueprint_pdf(class_level, subject, term, specific_topic, assignment_type, student_text)
-                    word_binary = create_word_doc(class_level, subject, term, specific_topic, assignment_type, student_text)
+                    pdf_binary_output = create_blueprint_pdf(class_level, subject, term, specific_topic, assignment_type, student_text_output)
+                    word_binary_output = create_word_doc(class_level, subject, term, specific_topic, assignment_type, student_text_output)
                     
-                    tab1, tab2, tab3 = st.tabs(["📄 Export Assessment File", "🔑 Teacher Matrix Key", "📊 Assessment Report"])
-                    
-                    with tab1:
-                        st.success(f"Teacher Granny's {ability_level} assessment is audited, compiled, and ready!")
-                        
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            st.download_button(
-                                label="📥 Download Locked PDF (For Printing)",
-                                data=bytes(pdf_binary),
-                                file_name=f"{class_level}_{subject.replace(' ', '_')}_{specific_topic.replace(' ', '_')}.pdf",
-                                mime="application/pdf"
-                            )
-                        with col2:
-                            st.download_button(
-                                label="📝 Download Editable Word Doc",
-                                data=word_binary,
-                                file_name=f"{class_level}_{subject.replace(' ', '_')}_{specific_topic.replace(' ', '_')}.docx",
-                                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                            )
-                        
-                        st.write("---")
-                        st.write("### Raw Text Contents Review:")
-                        st.write(
-                            student_text
-                            .replace("[SPACE_RESERVED]", "")
-                            .replace("[SCENARIO_START]", "")
-                            .replace("[SCENARIO_END]", "")
-                        )
-                        
-                    with tab2:
-                        st.download_button(
-                            label="💾 Download Teacher Answer Key (.txt)",
-                            data=teacher_text,
-                            file_name=f"{class_level}_{subject}_Answers.txt"
-                        )
-                        st.write("### Competency-Mapped Answer Key:")
-                        st.write(teacher_text)
-                        
-                    with tab3:
-                        st.download_button(
-                            label="📈 Download AI Assessment Report (.txt)",
-                            data=report_text,
-                            file_name=f"{class_level}_{subject}_Report.txt"
-                        )
-                        st.write("### Internal CBC Assessment Audit:")
-                        st.write(report_text)
-                        
-                if uploaded_file is not None:
-                    client.files.delete(name=uploaded_doc.name)
-                    
+                    # --- SAVE TO MEMORY BANK ---
+                    st.session_state.pdf_binary = pdf_binary_output
+                    st.session_state.word_binary = word_binary_output
+                    st.session_state.student_text = student_text_output
+                    st.session_state.teacher_text = teacher_text_output
+                    st.session_state.report_text = report_text_output
+                    st.session_state.documents_ready = True
+
             except Exception as e:
-                st.error(f"System compiling error occurred: {e}")
+                error_msg = str(e)
+                if "503" in error_msg or "UNAVAILABLE" in error_msg:
+                    st.warning("🚦 Teacher Granny's AI helpers are experiencing a temporary traffic jam! Please wait 60 seconds and click Generate again.")
+                else:
+                    st.error(f"System compiling error occurred: {e}")
+            finally:
+                if uploaded_doc is not None:
+                    try:
+                        client.files.delete(name=uploaded_doc.name)
+                        if os.path.exists(tmp_file_path):
+                            os.remove(tmp_file_path)
+                    except Exception as cleanup_error:
+                        print(f"Cleanup failed: {cleanup_error}")
+
+# --- DISPLAY LOGIC ---
+if st.session_state.documents_ready:
+    st.success(f"Teacher Granny's materials are audited, compiled, and safely stored in memory!")
+    
+    if st.button("🧹 Clear Workspace & Start Over"):
+        st.session_state.clear()
+        st.rerun()
+
+    tab1, tab2, tab3 = st.tabs(["📄 Export Assessment File", "🔑 Teacher Matrix Key", "📊 Assessment Report"])
+    
+    with tab1:
+        col1, col2 = st.columns(2)
+        with col1:
+            # We just pass the bytes directly now
+            st.download_button(
+                label="📥 Download Locked PDF (For Printing)",
+                data=st.session_state.pdf_binary,
+                file_name=f"Assessment.pdf",
+                mime="application/pdf"
+            )
+        with col2:
+            st.download_button(
+                label="📝 Download Editable Word Doc",
+                data=st.session_state.word_binary,
+                file_name=f"Assessment.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            )
+        
+        st.write("---")
+        st.write("### Raw Text Contents Review:")
+        clean_review = (
+            st.session_state.student_text
+            .replace("[SPACE_RESERVED]", "")
+            .replace("[SCENARIO_START]", "")
+            .replace("[SCENARIO_END]", "")
+        )
+        st.write(clean_review)
+        
+    with tab2:
+        st.download_button(
+            label="💾 Download Teacher Answer Key (.txt)",
+            data=st.session_state.teacher_text,
+            file_name=f"Answers.txt"
+        )
+        st.write("### Competency-Mapped Answer Key:")
+        st.write(st.session_state.teacher_text)
+        
+    with tab3:
+        st.download_button(
+            label="📈 Download AI Assessment Report (.txt)",
+            data=st.session_state.report_text,
+            file_name=f"Report.txt"
+        )
+        st.write("### Internal CBC Assessment Audit:")
+        st.write(st.session_state.report_text)
